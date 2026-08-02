@@ -1,0 +1,12 @@
+Nice talking with you today! I'm summarizing the project idea here. Basically this is to answer the question: is the thing we discover in the DCD paper (i.e., models maintain different circuits/mechanisms for seemingly the same task) true for code generation tasks as well?
+To answer the question, I suggest starting with replicating DCD's findings using our released code GitHub - Ziyu-Yao-NLP-Lab/data-driven-circuit-discovery: This repo contains code and experiment setu…. Since you are new to this topic, I suggest you spend some time understanding the implementation and mapping it to concepts described in the paper (e.g., what is a circuit, how does the EAP-IG algorithm work, how does the DCD algorithm work, etc.)
+When you are familiar with the code base, the next step is run the DCD algorithm on the balanced parentheses tasks in our another paper (GitHub - Ziyu-Yao-NLP-Lab/failure-by-interference: This repo contains code and experiment setup for …). The balanced parentheses dataset we have created cover examples needing 1-4 closing parentheses. The question to explore is: does a model establish distinct circuits for tasks involving different numbers of closing parentheses? similarly, does it establish distinct circuits dependent on the task context (e.g., closing for "print" statements for "str" vs. "tuple" - I just made it up)?
+GitHub - Ziyu-Yao-NLP-Lab/data-driven-circuit-discovery: This repo contains code and experiment setup for our paper "Data-driven Circuit Discovery for Interpretability of Language Models".
+This repo contains code and experiment setup for our paper "Data-driven Circuit Discovery for Interpretability of Language Models". - Ziyu-Yao-NLP-Lab/data-driven-circuit-discovery
+
+I don't expect you to complete all these in a week. This is a lot of work. But I do expect that you make some progress every week or so and report here. Some good learning materials while you are exploring the topic:
+our tutorial: https://ziyu-yao-nlp-lab.github.io/ICML25-MI-Tutorial.github.io/
+a hands-on implementation guide: https://arena-ch1-transformers.streamlit.app/
+I hope you enjoy the learning!
+ICML 2025 Tutorial on Mechanistic Interpretability for Language Models
+ICML 2025 Tutorial on Mechanistic Interpretability for Language Models

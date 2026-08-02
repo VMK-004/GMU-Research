@@ -1,0 +1,102 @@
+Secure Code Generation
+Research (7/24)
+This paper (arXiv:2506.23034) is a comprehensive empirical study of how often LLMs write insecure code, whether self-generated vulnerability hints can prevent it, and whether LLMs can repair vulnerabilities after the fact when given feedback. In short: LLMs are consistently insecure by default, hints/feedback help but only when they're specific and well-targeted, and the model's instruction-following ability matters more than its size.
+
+Overview
+Motivation / gap the paper identifies (Section 1-2)
+Prior work on LLM code security mostly tested a narrow set of big proprietary models (GPT-3.5/4, Copilot); open-weight and smaller-scale models were understudied despite growing real-world use.
+Two established comparisons: Pearce et al. found ~40% of Copilot's code across 18 CWE types was vulnerable; Siddiq & Santos (creators of the SecurityEval benchmark) found 68-74% vulnerable code from InCoder/Copilot. This paper positions itself as filling the "broader range of models" gap those studies left open.
+Study design, 3 dimensions (Section 3, Figure 1)
+Do LLMs generate vulnerable code with plain prompts? (baseline)
+Can self-generated vulnerability hints prevent it proactively?
+Can LLMs repair vulnerable code post-hoc when given feedback?
+Datasets (Table 1, Section 4)
+SecCodePLT: 1,071 questions (after excluding 274 unsupported by CodeQL), covering 21 CWE types, synthesized via mutation from expert-crafted seeds.
+SecurityEval: 121 questions, covering a much broader 69 CWE types, drawn from real-world code + expert-authored scenarios.
+16 CWE types overlap between the two, but SecurityEval covers 53 additional types SecCodePLT doesn't, which is why models tend to look worse on SecurityEval (more diverse, unfamiliar vulnerability types).
+Models tested (Table 2)
+CodeLlama-Instruct (7B, 34B), Llama3.1-Instruct (8B), Llama3.2-Instruct (3B), StarCoder2-Instruct (15B), DeepSeek-Coder-V2-Lite-Instruct (16B), GPT-3.5-turbo, GPT-4o. Selected for diversity across architecture family, parameter scale (3B–34B), and open vs. closed weights.
+Metrics (Section 4)
+TarV-R (Target Vulnerability Rate): % of generated code containing the specific vulnerability the question was designed to test for.
+AllV-R (All Vulnerability Rate): % of generated code containing any vulnerability, targeted or not. Lower = better for both.
+Less summarized repeat ↓
+RQ1. Do LLMs generate vulnerable code? (Section 5.1, Table 3)
+Overall vulnerability rates ranged ~4%-27% depending on model/dataset. Average across models: SecCodePLT TarV-R 8.5%/AllV-R 13.2%; SecurityEval TarV-R 20.7%/AllV-R 33.4%, confirming the harder, more diverse benchmark produces worse results across the board.
+GPT-4o had the highest AllV-R on SecCodePLT (18.0%) among all models tested, despite being the most capable model overall.
+DeepSeekV2-16B swung dramatically between datasets: 4.2% TarV-R on SecCodePLT vs. 27.3% on SecurityEval, showing vulnerability performance is highly dataset/CWE-type dependent, not a fixed model trait.
+Within-family scaling isn't a guarantee: CodeLlama-34B beat CodeLlama-7B (larger = safer, as expected), but GPT-4o was more vulnerable than GPT-3.5-turbo, and Llama3 models were more vulnerable than the older CodeLlama line. The authors flag this as an open question, unclear whether it's architecture, training data, or fine-tuning strategy driving it.
+Code-optimized models (CodeLlama, StarCoder2) generally beat general-purpose models on SecCodePLT but lost that edge on SecurityEval's broader vulnerability set.
+Vulnerability types were highly consistent across models, top-10 vulnerable CWE types overlapped heavily across all 8 models (only 11 unique types total), suggesting shared blind spots baked into training data/architecture rather than model-specific quirks (Figure 6).
+RQ2. Do self-generated hints help? (Section 5.2, Tables 4-7)
+Method: model lists its own top-5 predicted vulnerabilities before writing code, then that list is fed back in as guidance.
+Results were mixed and model-dependent: GPT-4o dropped TarV-R by 12.4 points on both datasets; Llama3.1-8B dropped ~4-8 points; several other models barely moved or got slightly worse.
+The paper isolates why: hints only helped when they (a) actually named the real target vulnerability ("Hints w. TarV" vs. "Hints w/o TarV" in Table 5) and (b) were precise/correct. When hints missed the target vulnerability, TarV-R increased for almost every model except Llama3.1-8B and GPT-4o, irrelevant hints actively mislead the model.
+Hint precision varied hugely by model: GPT-4o's hints were 98.6% precise (verified via GPT-4o-as-judge, cross-checked against human raters at 95.65% precision/91.67% recall agreement); CodeLlama-7B's were only 46.5% precise.
+A further experiment isolated "contextualized" hints (grounded in the specific coding task) vs. bare CWE definitions (Table 6, Table 7). Contextualized hints consistently outperformed plain definitions, especially on SecurityEval, e.g., GPT-4o's TarV-R dropped 17.3 points with contextualized hints vs. 15.7 with definitions alone.
+Weaker-instruction-following models (CodeLlama-7B/34B) showed minimal improvement even with high-quality contextualized hints, suggesting a ceiling driven by the model's ability to act on information, not just receive it.
+RQ3. Can LLMs repair their own vulnerable code? (Section 5.3, Table 8)
+Two feedback types compared, both sourced from CodeQL: "direct feedback" (raw tool output: CWE ID + line number) vs. "explained feedback" (GPT-4o expands that into a full explanation + fix suggestions).
+Explained feedback consistently beat direct feedback for models with strong instruction-following: GPT-4o's AllV-R dropped 28.1 points on SecurityEval under explained feedback (vs. also 28.1 under direct, a case where it maxed out either way); DeepSeekV2-16B dropped 21.4 points under explained vs. 13.2 under direct.
+Weaker models (CodeLlama, StarCoder2, Llama3.2-3B) showed zero improvement on SecurityEval under either feedback type, flat 0.0 change across the board, reinforcing that repair capability tracks instruction-following strength, not just feedback quality.
+The explained feedback itself was validated for quality: manual review of 160 samples found over 98% of GPT-4o's explanations were correct and actionable.
+Discussion / limitations the authors name themselves (Section 6)
+CodeQL as the sole detection tool: catches static vulnerabilities but misses dynamic/runtime-only issues.
+Python-only: explicitly flagged as not generalizable to C++, Java, etc.
+Single-turn, static evaluation: doesn't capture real iterative dev workflows where a human and model go back and forth multiple times.
+Only two benchmarks, may not cover the full universe of vulnerability types.
+
+Key Findings
+RQ1. Do LLMs generate vulnerable code by default?
+Tested 8 models (GPT-4o, GPT-3.5, Llama3.1/3.2, CodeLlama-7B/34B, StarCoder2-15B, DeepSeek-Coder-V2) on two benchmarks: SecurityEval (69 CWE types, 121 questions) and SecCodePLT (21 CWE types, 1,071 questions).
+Vulnerability rates ranged from ~4% to ~27% depending on model and dataset.
+Surprising finding: newer/larger models weren't always safer. GPT-4o was more vulnerable than GPT-3.5-turbo on both benchmarks. Same pattern for Llama3 vs. CodeLlama.
+Code-optimized models (CodeLlama, StarCoder2) tended to be safer than general-purpose models, but that edge disappeared on the more diverse SecurityEval benchmark.
+Models tend to fail on the same vulnerability types, suggesting shared weaknesses from training data/architecture, not random noise.
+RQ2. Do self-generated vulnerability hints help prevent vulnerabilities?
+Method: have the LLM predict its own top-5 likely vulnerabilities before writing code, then feed that back in as a guardrail.
+Effectiveness depended entirely on hint quality:
+Relevance: does the hint actually name the real (target) vulnerability?
+Precision: is the hint's description technically correct?
+Contextualization: is the hint grounded in the specific coding task, not just a generic CWE definition?
+When hints missed the real vulnerability, they sometimes made things worse (misleading the model).
+GPT-4o generated the most precise hints (98.6%); CodeLlama-7B the worst (46.5%).
+Contextualized hints beat plain CWE definitions, especially on the harder SecurityEval benchmark.
+RQ3. Can LLMs repair their own vulnerable code when given feedback?
+Two feedback types tested, both derived from CodeQL (static analysis tool):
+Direct feedback: raw CodeQL output (vulnerability type + line number).
+Explained feedback: GPT-4o expands the raw output into a full explanation + actionable fix suggestions.
+Explained feedback consistently outperformed direct feedback, but only for models with strong instruction-following (GPT-4o, DeepSeek-Coder-V2, GPT-3.5-turbo).
+Weaker models (CodeLlama, StarCoder2, Llama3.2-3B) barely improved under either condition, seeming to lack the reasoning capacity to act on feedback, not just the information.
+Suggested next steps (Discussion section)
+Mixed-strategy pipelines: use smaller code-optimized models for initial generation, larger reasoning models for vulnerability repair.
+Fine-grained, explained feedback matters more than raw detector output.
+Expand vulnerability coverage rather than optimizing for a narrow known set.
+
+Qwen2.5
+What is it
+Released by Alibaba's Qwen Team, a family of open-weight LLMs at 0.5B, 1.5B, 3B, 7B, 14B, 32B, and 72B parameters, plus two proprietary MoE variants (Qwen2.5-Turbo, Qwen2.5-Plus) hosted via Alibaba Cloud.
+Big jump from the prior version: pre-training data scaled from 7 trillion to 18 trillion tokens, plus over 1 million post-training examples using supervised fine-tuning and a two-stage RL process (offline DPO + online GRPO).
+Coding-specific relevance (this is the part that matters for your project)
+Qwen2.5 was trained with dedicated coding data pulled from a sister model, Qwen2.5-Coder, and instruction-tuned across roughly 40 programming languages.
+On coding benchmarks, Qwen2.5-72B-Instruct scores 86.6% on HumanEval and 88.2% on MBPP, and it's evaluated on MultiPL-E, which spans Python, C++, Java, PHP, TypeScript, C#, Bash, and JavaScript. That's notable because your paper was Python-only, one of its named limitations.
+Performance-wise, Qwen2.5-72B-Instruct is positioned as matching or beating Llama-3.1-405B-Instruct despite being about a fifth the size, and competitive with GPT-4o-mini/GPT-4o at smaller scales.
+The gap that jumps out
+This entire technical report is about functional/general capability (HumanEval, MBPP, MMLU, math, multilingual, long-context, etc.). There is no security or vulnerability evaluation anywhere in it, no CWE testing, no CodeQL, nothing like TarV-R/AllV-R from your paper. So Qwen2.5 has strong coding credentials but an entirely untested secure coding profile. That's a clean, citable reason it'd be a good candidate to run through your paper's methodology.
+
+Lakshmi's/Mohan's/Arjun's Findings (to be filled in…)
+
+
+
+BRAINSTORM: Possible Topics
+Does structured Chain-of-Thought reasoning (from Lakshmi's survey) outperform this paper's "self-generated hints" or "explained feedback" methods for either preventing or repairing vulnerabilities?
+Their study is single-turn only; would a multi-turn, conversational repair loop (more CoT-like) close the gap for weaker models that struggled with one-shot feedback?
+Everything here is Python, would findings hold for another language?
+Qwen2.5 wasn't one of the 8 models tested in this paper, would it show the same insecure-by-default pattern, and could running it on the ORC cluster be a natural first hands-on experiment for us?
+Do reasoning models (LRMs) that produce step-by-step chain-of-thought before answering generate less vulnerable code by default than standard LLMs, without needing self-generated hints or external feedback at all? 
+What underlying factor (architecture, training data composition, or fine-tuning strategy) best explains why newer/larger models like GPT-4o are more vulnerable than predecessors like GPT-3.5, despite being more capable overall? 
+
+Action Items
+Look at secure code generation and proposed techniques, look at multilingual code  generation (possible contribution point)
+Look/Deploy Qwen2.5 with hopper cluster
+
+

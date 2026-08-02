@@ -1,0 +1,7 @@
+Hi Everyone, I'm writing this email to connect you all, as it may be good for you to meet and discuss your experience/thoughts/ideas with each other! 
+You are all undergraduate students I recently started to work with. 
+Lakshmi and Manav are exploring how LLMs and LRMs (large reasoning models, which are LLMs trained to have elaborated thinking before responding) reason for complex code generation. A particular scenario I mentioned to Manav today is "secure code generation", i.e., generating code that does not introduce vulnerability (e.g., as specified by Common Weakness Enumeration types). See our recent study https://arxiv.org/pdf/2506.23034.
+Mohan is more on the interpretability side, currently exploring an extension of our DCD paper (https://arxiv.org/pdf/2605.09129) on code generation tasks. Specifically, we want to see if LLMs similarly maintain different mechanisms, in a way different to how humans solve the task, when they do even simple coding task. 
+Feel free to connect with each other and have offline chats/study groups as needed! 
+Common Weakness Enumeration (CWE) is a list of software and hardware weaknesses.
+ 
